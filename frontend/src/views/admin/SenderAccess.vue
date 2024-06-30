@@ -5,15 +5,15 @@ import { useI18n } from 'vue-i18n'
 import { useGlobalState } from '../../store'
 import { api } from '../../api'
 
-const { localeCache, loading } = useGlobalState()
+const { loading } = useGlobalState()
 const message = useMessage()
 
 const { t } = useI18n({
-  locale: localeCache.value || 'zh',
   messages: {
     en: {
       address: 'Address',
       success: 'Success',
+      is_enabled: 'Is Enabled',
       enable: 'Enable',
       disable: 'Disable',
       modify: 'Modify',
@@ -22,12 +22,13 @@ const { t } = useI18n({
       itemCount: 'itemCount',
       modalTip: 'Please input the sender balance',
       balance: 'Balance',
-      refresh: 'Refresh',
+      query: 'Query',
       ok: 'OK'
     },
     zh: {
       address: '地址',
       success: '成功',
+      is_enabled: '是否启用',
       enable: '启用',
       disable: '禁用',
       modify: '修改',
@@ -36,7 +37,7 @@ const { t } = useI18n({
       itemCount: '总数',
       modalTip: '请输入发件额度',
       balance: '余额',
-      refresh: '刷新',
+      query: '查询',
       ok: '确定'
     }
   }
@@ -51,6 +52,7 @@ const showModal = ref(false)
 const senderBalance = ref(0)
 const senderEnabled = ref(false)
 
+const addressQuery = ref('')
 
 const updateData = async () => {
   try {
@@ -77,6 +79,7 @@ const fetchData = async () => {
       `/admin/address_sender`
       + `?limit=${pageSize.value}`
       + `&offset=${(page.value - 1) * pageSize.value}`
+      + (addressQuery.value ? `&address=${addressQuery.value}` : '')
     );
     data.value = results;
     if (addressCount > 0) {
@@ -106,7 +109,7 @@ const columns = [
     key: "balance"
   },
   {
-    title: "Enabled",
+    title: t('is_enabled'),
     key: "enabled",
     render(row) {
       return h('div', [
@@ -122,7 +125,7 @@ const columns = [
         h(NButton,
           {
             type: 'success',
-            ghost: true,
+            tertiary: true,
             onClick: () => {
               showModal.value = true;
               curRow.value = row;
@@ -161,21 +164,22 @@ onMounted(async () => {
         <n-input-number v-model:value="senderBalance" :min="0" :max="1000" />
       </n-form-item>
       <template #action>
-        <n-button :loading="loading" @click="updateData()" size="small" tertiary round type="primary">
+        <n-button :loading="loading" @click="updateData()" size="small" tertiary type="primary">
           {{ t('ok') }}
         </n-button>
       </template>
     </n-modal>
+    <n-input-group>
+      <n-input v-model:value="addressQuery" />
+      <n-button @click="fetchData" type="primary" tertiary>
+        {{ t('query') }}
+      </n-button>
+    </n-input-group>
     <div style="display: inline-block;">
       <n-pagination v-model:page="page" v-model:page-size="pageSize" :item-count="count" :page-sizes="[20, 50, 100]"
         show-size-picker>
         <template #prefix="{ itemCount }">
           {{ t('itemCount') }}: {{ itemCount }}
-        </template>
-        <template #suffix>
-          <n-button @click="fetchData" type="primary" size="small" ghost>
-            {{ t('refresh') }}
-          </n-button>
         </template>
       </n-pagination>
     </div>

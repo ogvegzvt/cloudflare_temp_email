@@ -38,6 +38,8 @@ wrangler d1 execute dev --file=db/schema.sql
 # schema update, if you have initialized the database before this date, you can execute this command to update
 # wrangler d1 execute dev --file=db/2024-01-13-patch.sql
 # wrangler d1 execute dev --file=db/2024-04-03-patch.sql
+# create a namespace, and copy the output to wrangler.toml in the next step
+wrangler kv:namespace create DEV
 ```
 
 ![d1](/readme_assets/d1.png)
@@ -56,14 +58,27 @@ pnpm run deploy
 
 `wrangler.toml`
 
-```bash
+```toml
 name = "cloudflare_temp_email"
-main = "src/worker.js"
+main = "src/worker.ts"
 compatibility_date = "2023-08-14"
 node_compat = true
 
+# enable cron if you want set auto clean up
+# [triggers]
+# crons = [ "0 0 * * *" ]
+
+# send mail by cf mail
+# send_email = [
+#    { name = "SEND_MAIL" },
+# ]
+
 [vars]
+# TITLE = "Custom Title" # The title of the site
 PREFIX = "tmp" # The mailbox name prefix to be processed
+# (min, max) length of the adderss, if not set, the default is (1, 30)
+# MIN_ADDRESS_LEN = 1
+# MAX_ADDRESS_LEN = 30
 # If you want your site to be private, uncomment below and change your password
 # PASSWORDS = ["123", "456"]
 # admin console password, if not configured, access to the console is not allowed
@@ -71,22 +86,42 @@ PREFIX = "tmp" # The mailbox name prefix to be processed
 # admin contact information. If not configured, it will not be displayed. Any string can be configured.
 # ADMIN_CONTACT = "xx@xx.xxx"
 DOMAINS = ["xxx.xxx1" , "xxx.xxx2"] # your domain name
+# For chinese domain name, you can use DOMAIN_LABELS to show chinese domain name
+# DOMAIN_LABELS = ["中文.xxx", "xxx.xxx2"]
 JWT_SECRET = "xxx" # Key used to generate jwt
 BLACK_LIST = "" # Blacklist, used to filter senders, comma separated
+# Allow users to create email addresses
+ENABLE_USER_CREATE_EMAIL = true
 # Allow users to delete messages
 ENABLE_USER_DELETE_EMAIL = true
 # Allow automatic replies to emails
 ENABLE_AUTO_REPLY = false
+# Allow webhook
+# ENABLE_WEBHOOK = true
+# Footer text
+# COPYRIGHT = "Dream Hunter"
 # default send balance, if not set, it will be 0
 # DEFAULT_SEND_BALANCE = 1
+# Turnstile verification configuration
+# CF_TURNSTILE_SITE_KEY = ""
+# CF_TURNSTILE_SECRET_KEY = ""
 # dkim config
 # DKIM_SELECTOR = "mailchannels" # Refer to the DKIM section mailchannels._domainkey for mailchannels
 # DKIM_PRIVATE_KEY = "" # Refer to the contents of priv_key.txt in the DKIM section
+# telegram bot
+# TG_MAX_ACCOUNTS = 5
+# global forward address list, if set, all emails will be forwarded to these addresses
+# FORWARD_ADDRESS_LIST = ["xxx@xxx.com"]
 
 [[d1_databases]]
 binding = "DB"
 database_name = "xxx" # D1 database name
 database_id = "xxx" # D1 database ID
+
+# kv config for send email verification code
+# [[kv_namespaces]]
+# binding = "KV"
+# id = "xxxx"
 
 # Create a new address current limiting configuration
 # [[unsafe.bindings]]

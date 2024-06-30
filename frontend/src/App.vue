@@ -1,21 +1,22 @@
 <script setup>
 import { darkTheme, NGlobalStyle, zhCN } from 'naive-ui'
 import { computed, onMounted } from 'vue'
-import { useDark, useToggle } from '@vueuse/core'
 import { useI18n } from 'vue-i18n'
 import { useGlobalState } from './store'
 import { useIsMobile } from './utils/composables'
 import Header from './views/Header.vue';
+import Footer from './views/Footer.vue';
 
-const { localeCache, isDark, loading } = useGlobalState()
+
+const {
+  isDark, loading, useSideMargin, telegramApp, isTelegram
+} = useGlobalState()
+const { locale } = useI18n({});
 const theme = computed(() => isDark.value ? darkTheme : null)
-const localeConfig = computed(() => localeCache.value == 'zh' ? zhCN : null)
+const localeConfig = computed(() => locale.value == 'zh' ? zhCN : null)
 const isMobile = useIsMobile()
+const showSideMargin = computed(() => !isMobile.value && useSideMargin.value);
 
-const { locale } = useI18n({
-  useScope: 'global',
-});
-locale.value = localeCache.value;
 
 onMounted(async () => {
   const token = import.meta.env.VITE_CF_WEB_ANALY_TOKEN;
@@ -29,6 +30,23 @@ onMounted(async () => {
     document.body.appendChild(script);
   }
 
+  // check if telegram is enabled
+  const enableTelegram = import.meta.env.VITE_IS_TELEGRAM;
+  if (
+    (typeof enableTelegram === 'boolean' && enableTelegram === true)
+    ||
+    (typeof enableTelegram === 'string' && enableTelegram === 'true')
+  ) {
+    await new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = 'https://telegram.org/js/telegram-web-app.js';
+      script.onload = resolve;
+      script.onerror = reject;
+      document.body.appendChild(script);
+    });
+    telegramApp.value = window.Telegram?.WebApp || {};
+    isTelegram.value = !!window.Telegram?.WebApp?.initData;
+  }
 });
 </script>
 
@@ -38,16 +56,19 @@ onMounted(async () => {
     <n-spin description="loading..." :show="loading">
       <n-message-provider>
         <n-grid x-gap="12" :cols="12">
-          <n-gi v-if="!isMobile" span="1"></n-gi>
-          <n-gi :span="isMobile ? 12 : 10">
+          <n-gi v-if="showSideMargin" span="1"></n-gi>
+          <n-gi :span="!showSideMargin ? 12 : 10">
             <div class="main">
               <n-space vertical>
-                <Header />
-                <router-view></router-view>
+                <n-layout style="min-height: 80vh;">
+                  <Header />
+                  <router-view></router-view>
+                </n-layout>
+                <Footer />
               </n-space>
             </div>
           </n-gi>
-          <n-gi v-if="!isMobile" span="1"></n-gi>
+          <n-gi v-if="showSideMargin" span="1"></n-gi>
         </n-grid>
         <n-back-top />
       </n-message-provider>

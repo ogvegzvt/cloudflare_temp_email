@@ -1,27 +1,30 @@
 <script setup>
 import { ref, h, onMounted, watch } from 'vue';
+import { NBadge } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
 
 import { useGlobalState } from '../../store'
 import { api } from '../../api'
-import { NMenu } from 'naive-ui';
+import { NButton, NMenu } from 'naive-ui';
 import { MenuFilled } from '@vicons/material'
 
 const {
-    localeCache, adminAuth, showAdminAuth, loading,
+    adminAuth, showAdminAuth, loading,
     adminTab, adminMailTabAddress, adminSendBoxTabAddress
 } = useGlobalState()
 const message = useMessage()
 
 const { t } = useI18n({
-    locale: localeCache.value || 'zh',
     messages: {
         en: {
             name: 'Name',
             created_at: 'Created At',
-            showPass: 'Show Passwrod',
-            password: 'Password',
-            passwordTip: 'Please copy the password and you can use it to login to your email account.',
+            updated_at: 'Update At',
+            mail_count: 'Mail Count',
+            send_count: 'Send Count',
+            showCredential: 'Show Mail Address Credential',
+            addressCredential: 'Mail Address Credential',
+            addressCredentialTip: 'Please copy the Mail Address Credential and you can use it to login to your email account.',
             delete: 'Delete',
             deleteTip: 'Are you sure to delete this email?',
             delteAccount: 'Delete Account',
@@ -35,9 +38,12 @@ const { t } = useI18n({
         zh: {
             name: '名称',
             created_at: '创建时间',
-            showPass: '显示密码',
-            password: '密码',
-            passwordTip: '请复制密码，你可以使用它登录你的邮箱。',
+            updated_at: '更新时间',
+            mail_count: '邮件数量',
+            send_count: '发送数量',
+            showCredential: '查看邮箱地址凭证',
+            addressCredential: '邮箱地址凭证',
+            addressCredentialTip: '请复制邮箱地址凭证，你可以使用它登录你的邮箱。',
             delete: '删除',
             deleteTip: '确定要删除这个邮箱吗？',
             delteAccount: '删除邮箱',
@@ -51,8 +57,8 @@ const { t } = useI18n({
     }
 });
 
-const showEmailPassword = ref(false)
-const curEmailPassword = ref("")
+const showEmailCredential = ref(false)
+const curEmailCredential = ref("")
 const curDeleteAddressId = ref(0);
 
 const addressQuery = ref("")
@@ -61,16 +67,16 @@ const data = ref([])
 const count = ref(0)
 const page = ref(1)
 const pageSize = ref(20)
-const showDelteAccount = ref(false)
+const showDeleteAccount = ref(false)
 
-const showPassword = async (id) => {
+const showCredential = async (id) => {
     try {
-        curEmailPassword.value = await api.adminShowPassword(id)
-        showEmailPassword.value = true
+        curEmailCredential.value = await api.adminShowAddressCredential(id)
+        showEmailCredential.value = true
     } catch (error) {
         message.error(error.message || "error");
-        showEmailPassword.value = false
-        curEmailPassword.value = ""
+        showEmailCredential.value = false
+        curEmailCredential.value = ""
     }
 }
 
@@ -81,7 +87,8 @@ const deleteEmail = async () => {
         await fetchData()
     } catch (error) {
         message.error(error.message || "error");
-        showDelteAccount.value = false
+    } finally {
+        showDeleteAccount.value = false
     }
 }
 
@@ -117,6 +124,62 @@ const columns = [
         key: "created_at"
     },
     {
+        title: t('updated_at'),
+        key: "updated_at"
+    },
+    {
+        title: t('mail_count'),
+        key: "mail_count",
+        render(row) {
+            return h(NButton,
+                {
+                    text: true,
+                    onClick: () => {
+                        if (row.mail_count > 0) {
+                            adminMailTabAddress.value = row.name;
+                            adminTab.value = "mails";
+                        }
+                    }
+                },
+                {
+                    icon: () => h(NBadge, {
+                        value: row.mail_count,
+                        'show-zero': true,
+                        max: 99,
+                        type: "success"
+                    }),
+                    default: () => row.mail_count > 0 ? t('viewMails') : ""
+                }
+            )
+        }
+    },
+    {
+        title: t('send_count'),
+        key: "send_count",
+        render(row) {
+            return h(NButton,
+                {
+                    text: true,
+                    onClick: () => {
+                        if (row.send_count > 0) {
+                            adminSendBoxTabAddress.value = row.name;
+                            adminTab.value = "sendBox";
+                        }
+                    }
+                },
+                {
+                    icon: () => h(NBadge, {
+                        value: row.send_count,
+                        'show-zero': true,
+                        max: 99,
+                        type: "success"
+                    }),
+                    default: () => row.send_count > 0 ? t('viewSendBox') : ""
+                }
+            )
+        }
+    },
+    {
         title: t('actions'),
         key: 'actions',
         render(row) {
@@ -132,18 +195,16 @@ const columns = [
                                 {
                                     label: () => h(NButton,
                                         {
-                                            bordered: false,
-                                            ghost: true,
-                                            onClick: () => showPassword(row.id)
+                                            text: true,
+                                            onClick: () => showCredential(row.id)
                                         },
-                                        { default: () => t('showPass') }
+                                        { default: () => t('showCredential') }
                                     ),
                                 },
                                 {
                                     label: () => h(NButton,
                                         {
-                                            bordered: false,
-                                            ghost: true,
+                                            text: true,
                                             onClick: () => {
                                                 adminMailTabAddress.value = row.name;
                                                 adminTab.value = "mails";
@@ -155,8 +216,7 @@ const columns = [
                                 {
                                     label: () => h(NButton,
                                         {
-                                            bordered: false,
-                                            ghost: true,
+                                            text: true,
                                             onClick: () => {
                                                 adminSendBoxTabAddress.value = row.name;
                                                 adminTab.value = "sendBox";
@@ -168,11 +228,10 @@ const columns = [
                                 {
                                     label: () => h(NButton,
                                         {
-                                            bordered: false,
-                                            ghost: true,
+                                            text: true,
                                             onClick: () => {
                                                 curDeleteAddressId.value = row.id;
-                                                showDelteAccount.value = true;
+                                                showDeleteAccount.value = true;
                                             }
                                         },
                                         { default: () => t('delete') }
@@ -201,31 +260,31 @@ onMounted(async () => {
 </script>
 
 <template>
-    <div>
-        <n-modal v-model:show="showEmailPassword" preset="dialog" title="Dialog">
+    <div style="margin-top: 10px;">
+        <n-modal v-model:show="showEmailCredential" preset="dialog" title="Dialog">
             <template #header>
-                <div>{{ t("password") }}</div>
+                <div>{{ t("addressCredential") }}</div>
             </template>
             <span>
-                <p>{{ t("passwordTip") }}</p>
+                <p>{{ t("addressCredentialTip") }}</p>
             </span>
             <n-card>
-                <b>{{ curEmailPassword }}</b>
+                <b>{{ curEmailCredential }}</b>
             </n-card>
             <template #action>
             </template>
         </n-modal>
-        <n-modal v-model:show="showDelteAccount" preset="dialog" :title="t('delteAccount')">
+        <n-modal v-model:show="showDeleteAccount" preset="dialog" :title="t('delteAccount')">
             <p>{{ t('deleteTip') }}</p>
             <template #action>
-                <n-button :loading="loading" @click="deleteEmail" size="small" tertiary round type="error">
+                <n-button :loading="loading" @click="deleteEmail" size="small" tertiary type="error">
                     {{ t('delteAccount') }}
                 </n-button>
             </template>
         </n-modal>
         <n-input-group>
             <n-input v-model:value="addressQuery" clearable :placeholder="t('addressQueryTip')" />
-            <n-button @click="fetchData" type="primary" ghost>
+            <n-button @click="fetchData" type="primary" tertiary>
                 {{ t('query') }}
             </n-button>
         </n-input-group>
